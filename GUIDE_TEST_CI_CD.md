@@ -80,6 +80,22 @@ Statut : [ ]
 
 1. Ouvrir le fichier du pipeline PR : .github/workflows/pr.yml
 2. Ouvrir le fichier du pipeline Main : .github/workflows/main.yml
+
+Pourquoi cette étape est importante :
+- Le pipeline PR sert de barrière qualité avant fusion (lint, typecheck, tests, sécurité).
+- Le pipeline Main valide qu'après fusion, le projet reste buildable et "déployable".
+- À l'oral, cette étape prouve que ton CI/CD n'est pas juste présent, mais compris.
+
+Ce que tu dois vérifier dans chaque fichier :
+- `on:` : événement de déclenchement (pull_request ou push).
+- `branches:` : branche ciblée (ici master).
+- `jobs:` : liste des blocs exécutés.
+- `needs:` : ordre d'exécution entre jobs (ex: build après test).
+- les commandes `run:` : ce qui est réellement exécuté.
+
+Explication courte à dire à l'oral (20 secondes) :
+"Le fichier PR vérifie automatiquement la qualité avant merge. Le fichier Main rejoue les validations après fusion puis lance le build et le déploiement simulé. Ça garantit qu'on bloque les régressions avant et après intégration." 
+
 3. Vérifier les déclencheurs :
    - PR pipeline : pull_request vers master
    - Main pipeline : push vers master
@@ -91,7 +107,7 @@ Preuve à garder (capture) :
 
 ## Étape 2 - Préparer l'environnement local
 
-Statut : [ ]
+Statut : [✅ FAIT]
 
 1. Installer les dépendances exactes CI :
 
@@ -119,18 +135,46 @@ Preuve à garder :
 
 ## Étape 3 - Rejouer le pipeline PR en local
 
-Statut : [ ]
+Statut : [✅ FAIT - Résultats]
+
+**Commandes exécutées avec succès :**
+- `npm ci` ✅
+- `docker-compose up -d` ✅ (postgres running)
+- `node ace migration:run` ✅ (déjà à jour)
+- `node ace db:seed` ✅ (users + hotels + bookings)
+- `npm run lint` ✅ (0 erreurs)
+- `npm run typecheck` ✅ (0 erreurs)
+- `npm test` ✅ (tous les tests backend passent)
+- `npm run test:frontend` ✅ (169 tests Vitest passent)
+- `npx playwright install --with-deps chromium` ✅
+- **Correction apportée :** `node ace migration:refresh --seed` pour réinitialiser la BD proprement
+
+Étape suivante : créer branche de test CI
 
 Exécuter dans cet ordre :
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run test:frontend
-npx playwright install --with-deps chromium
+npm run lint                                        # ✅ Exécuté
+npm run typecheck                                   # ✅ Exécuté
+npm test                                            # ✅ Exécuté
+npm run test:frontend                              # ✅ Exécuté (169 tests)
+npx playwright install --with-deps chromium        # ✅ Exécuté
+node ace migration:refresh --seed                   # ⚠️ À faire AVANT test:e2e
+npm run test:e2e                                    # À faire après
+npm audit --omit=dev                               # À faire après
+```
+
+Dépannage rapide si `npm run test:e2e` échoue :
+- Erreur `relation "users" does not exist` : les migrations ne sont pas appliquées.
+- Erreur `Invalid email or password` dans les tests de login : les comptes seed ne sont pas présents.
+
+Commandes de correction :
+
+```bash
+docker-compose up -d
+node ace migration:run
+node ace db:seed
 npm run test:e2e
-npm audit --omit=dev
 ```
 
 Important :
@@ -271,18 +315,18 @@ Pitch conseillé en 20 secondes :
 
 ## Journal d'exécution (à remplir)
 
-Date :
+Date : 25 mars 2026
 
-- Étape 0 :
-- Étape 1 :
-- Étape 2 :
-- Étape 3 :
-- Étape 4 :
-- Étape 5 :
-- Étape 6 :
-- Étape 7 :
-- Étape 8 :
-- Étape 9 :
-- Étape 10 :
+- Étape 0 : En cours (GitHub publication)
+- Étape 1 : ✅ Workflows vérifiés
+- Étape 2 : ✅ Environnement prêt (npm ci, docker, postgres running)
+- Étape 3 : ✅ Tests locaux réussis (lint, typecheck, unit, frontend 169✅)
+- Étape 4 : En cours (branche chore/test-ci-pipeline créée)
+- Étape 5 : À faire (PR vers master)
+- Étape 6 : À faire (test blocage optionnel)
+- Étape 7 : À faire (merge et main pipeline)
+- Étape 8 : À faire (branch protections)
+- Étape 9 : À faire (build production)
+- Étape 10 : À faire (preuves orales)
 
-Résultat final : [ ] CI/CD validé  [ ] À corriger
+Résultat final : [ ] CI/CD validé  [🟡] En cours
